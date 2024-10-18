@@ -1,95 +1,118 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { SocketProvider, useSocket } from '../contexts/SocketContext';
+import ConnectionForm from '../components/ConnectionForm';
+import ChatList from '../components/ChatList';
+import ChatDetails from '../components/ChatDetails';
+import Header from '../components/Header';
+
+const ChatApp = () => {
+  const { user, disconnectUser } = useSocket();
+  const [activeChat, setActiveChat] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const handleDisconnectUser = () => {
+    setActiveChat(null);
+    disconnectUser();
+  };
+  
+  const onSelectChat = (chat) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveChat(chat);
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div style={styles.pageContainer}>
+      {user ? <Header user={user} onDisconnect={handleDisconnectUser} /> : null}
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
+      <main
+        style={{
+          ...styles.mainContainer,
+          ...(user ? {} : styles.centeredMainContainer),
+        }}
+      >
+        {!user ? (
+          <div style={styles.connectionSection}>
+            <h1>Dígitro Chat</h1>
+            <ConnectionForm />
+          </div>
+        ) : (
+          isMobile ? (
+            <div style={styles.chatContainerMobile}>
+              <ChatDetails onSelectChat={onSelectChat} chat={activeChat} />
+              <ChatList
+                onSelectChat={onSelectChat}
+                selectedChatId={activeChat?.callId}
+              />
+            </div>
+          ) : (
+            <div style={styles.chatContainerDesktop}>
+              <ChatList
+                onSelectChat={onSelectChat}
+                selectedChatId={activeChat?.callId}
+              />
+              <ChatDetails onSelectChat={onSelectChat} chat={activeChat} />
+            </div>
+          )
+        )}
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
+  );
+};
+
+const styles = {
+  pageContainer: {
+    display: 'flex',
+    minHeight: '100vh',
+  },
+  mainContainer: {
+    display: 'flex',
+    flexGrow: 1,
+  },
+  centeredMainContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatContainerDesktop: {
+    display: 'flex',
+    flexDirection: 'row',
+    paddingTop: '80px',
+    width: '100%',
+  },
+  chatContainerMobile: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingTop: '80px',
+    width: '100%',
+  },
+  connectionSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: '20vh',
+  },
+};
+
+export default function MainPage() {
+  return (
+    <SocketProvider>
+      <ChatApp />
+    </SocketProvider>
   );
 }
